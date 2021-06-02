@@ -59,17 +59,17 @@ if __name__ == "__main__":
     assert X.shape == (1, 4021, 12)
 
     # Set up model
-    cmlp = cMLP(X.shape[-1], lag=number_of_lags, hidden=[100])
+    cmlp = cMLP(X.shape[-1], lag=number_of_lags, hidden=[10])
 
     # Train with ISTA
-    train_loss_list = train_model_ista(cmlp, X, lam=0.002, lam_ridge=1e-2, lr=5e-2, penalty='H',
-                                       max_iter=50000,
+    train_loss_list = train_model_ista(cmlp, X, lam=0.01, lam_ridge=0.01, lr=5e-2, penalty='H',
+                                       max_iter=1000,
                                        check_every=100)
 
     # (p x p x lag) matrix: Entry (i, j, k) indicates whether variable j is Granger causal of variable i at lag k.
     # column_{t-k} -> row_t
     # t-1, t-2, ...
-    GC_est = cmlp.GC(ignore_lag=False).cpu().data.numpy()
+    GC_est = cmlp.GC(ignore_lag=False, threshold=False).cpu().data.numpy()
     print(GC_est)
     print(GC_est.shape)
 
@@ -86,5 +86,9 @@ if __name__ == "__main__":
     print(W_est_full.shape)
 
     file_name = './estimated_DAG'
+
     save_adjacency_matrix_in_csv(file_name, W_est_full, variable_names)
-    draw_DAGs_using_LINGAM(file_name, W_est_full, variable_names)
+
+    # only plot edges with strength higher than `edge_threshold`
+    edge_threshold = 0.3
+    draw_DAGs_using_LINGAM(file_name, W_est_full * (W_est_full > edge_threshold), variable_names)
