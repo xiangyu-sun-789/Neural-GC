@@ -8,8 +8,6 @@ from synthetic import simulate_var
 from models.cmlp import cMLP, cMLPSparse, train_model_ista, train_unregularized
 from utils import save_adjacency_matrix_in_csv, draw_DAGs_using_LINGAM
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 
 def load_sports_data(number_of_lags):
     data_file = "/Users/shawnxys/Development/Data/preprocessed_causal_sports_data_by_games/17071/features_shots_rewards.csv"
@@ -42,47 +40,51 @@ def load_sports_data(number_of_lags):
     return normalized_X, variable_names
 
 
-number_of_lags = 1
+if __name__ == "__main__":
 
-normalized_X, variable_names = load_sports_data(number_of_lags)
-print(variable_names)
+    number_of_lags = 1
 
-assert normalized_X.shape == (4021, 12)
+    normalized_X, variable_names = load_sports_data(number_of_lags)
+    print(variable_names)
 
-d = normalized_X.shape[1]
+    assert normalized_X.shape == (4021, 12)
 
-X = torch.tensor(normalized_X[np.newaxis], dtype=torch.float32, device=device)
+    d = normalized_X.shape[1]
 
-# assert X shape: (1, number of time steps, number of variables)
-assert X.shape == (1, 4021, 12)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# Set up model
-cmlp = cMLP(X.shape[-1], lag=number_of_lags, hidden=[100])
+    X = torch.tensor(normalized_X[np.newaxis], dtype=torch.float32, device=device)
 
-# Train with ISTA
-train_loss_list = train_model_ista(cmlp, X, lam=0.002, lam_ridge=1e-2, lr=5e-2, penalty='H',
-                                   max_iter=50000,
-                                   check_every=100)
+    # assert X shape: (1, number of time steps, number of variables)
+    assert X.shape == (1, 4021, 12)
 
-# (p x p x lag) matrix: Entry (i, j, k) indicates whether variable j is Granger causal of variable i at lag k.
-# column_{t-k} -> row_t
-# t-1, t-2, ...
-GC_est = cmlp.GC(ignore_lag=False).cpu().data.numpy()
-print(GC_est)
-print(GC_est.shape)
+    # Set up model
+    cmlp = cMLP(X.shape[-1], lag=number_of_lags, hidden=[100])
 
-# ..., t-2, t-1, t
-W_est_full = np.zeros((len(variable_names), len(variable_names)))
+    # Train with ISTA
+    train_loss_list = train_model_ista(cmlp, X, lam=0.002, lam_ridge=1e-2, lr=5e-2, penalty='H',
+                                       max_iter=50000,
+                                       check_every=100)
 
-for k in range(number_of_lags, 0, -1):
-    current_lag_W = GC_est[:, :, k - 1]
-
+    # (p x p x lag) matrix: Entry (i, j, k) indicates whether variable j is Granger causal of variable i at lag k.
     # column_{t-k} -> row_t
-    W_est_full[-1 * d:, -1 * d - k * d:0 - k * d] = current_lag_W
+    # t-1, t-2, ...
+    GC_est = cmlp.GC(ignore_lag=False).cpu().data.numpy()
+    print(GC_est)
+    print(GC_est.shape)
 
-print(W_est_full)
-print(W_est_full.shape)
+    # ..., t-2, t-1, t
+    W_est_full = np.zeros((len(variable_names), len(variable_names)))
 
-file_name = './estimated_DAG'
-save_adjacency_matrix_in_csv(file_name, W_est_full, variable_names)
-draw_DAGs_using_LINGAM(file_name, W_est_full, variable_names)
+    for k in range(number_of_lags, 0, -1):
+        current_lag_W = GC_est[:, :, k - 1]
+
+        # column_{t-k} -> row_t
+        W_est_full[-1 * d:, -1 * d - k * d:0 - k * d] = current_lag_W
+
+    print(W_est_full)
+    print(W_est_full.shape)
+
+    file_name = './estimated_DAG'
+    save_adjacency_matrix_in_csv(file_name, W_est_full, variable_names)
+    draw_DAGs_using_LINGAM(file_name, W_est_full, variable_names)
