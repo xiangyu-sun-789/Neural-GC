@@ -19,14 +19,18 @@ X = torch.tensor(X_np[np.newaxis], dtype=torch.float32, device=device)
 # assert X shape: (1, number of time steps, number of variables)
 assert X.shape == (1, 1000, 10)
 
+number_of_lags = 3
+
 # Set up model
-cmlp = cMLP(X.shape[-1], lag=3, hidden=[100])
+cmlp = cMLP(X.shape[-1], lag=number_of_lags, hidden=[100])
 
 # Train with ISTA
 train_loss_list = train_model_ista(cmlp, X, lam=0.002, lam_ridge=1e-2, lr=5e-2, penalty='H',
                                    max_iter=50000,
                                    check_every=100)
 
+# (p x p x lag) matrix. Entry (i, j, k) indicates whether variable j is Granger causal of variable i at lag k.
+# column_{t-k} -> row_t
 GC_est = cmlp.GC(ignore_lag=False).cpu().data.numpy()
 print(GC_est)
 print(GC_est.shape)
