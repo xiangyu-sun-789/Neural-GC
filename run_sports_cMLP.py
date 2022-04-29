@@ -40,8 +40,10 @@ def load_sports_data(number_of_lags):
     return normalized_X, variable_names
 
 
-def train_cMLP(normalized_X, device, number_of_lags, hidden, lam, lam_ridge, lr, penalty, max_iter, check_every,
-               ignore_lag, threshold, edge_threshold):
+def train_cMLP(normalized_X, device, variable_names, number_of_lags, hidden, lam, lam_ridge, lr, penalty, max_iter,
+               check_every, ignore_lag, threshold, edge_threshold):
+    d = normalized_X.shape[1]
+
     X = torch.tensor(normalized_X[np.newaxis], dtype=torch.float32, device=device)
 
     # assert X shape: (1, number of time steps, number of variables)
@@ -104,8 +106,8 @@ if __name__ == "__main__":
     ignore_lag = False
     threshold = False
     edge_threshold = 0.3
-    W_est_full = train_cMLP(normalized_X, device, number_of_lags, hidden, lam, lam_ridge, lr, penalty, max_iter,
-                            check_every, ignore_lag, threshold, edge_threshold)
+    W_est_full = train_cMLP(normalized_X, device, variable_names, number_of_lags, hidden, lam, lam_ridge, lr, penalty,
+                            max_iter, check_every, ignore_lag, threshold, edge_threshold)
 
     file_name = './estimated_DAG'
 
