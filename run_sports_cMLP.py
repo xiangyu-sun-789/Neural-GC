@@ -40,7 +40,8 @@ def load_sports_data(number_of_lags):
     return normalized_X, variable_names
 
 
-def train_cMLP():
+def train_cMLP(normalized_X, device, number_of_lags, hidden, lam, lam_ridge, lr, penalty, max_iter, check_every,
+               ignore_lag, threshold):
     X = torch.tensor(normalized_X[np.newaxis], dtype=torch.float32, device=device)
 
     # assert X shape: (1, number of time steps, number of variables)
@@ -48,19 +49,18 @@ def train_cMLP():
     assert X.shape[-1] == normalized_X.shape[-1]
 
     # Set up model
-    cmlp = cMLP(X.shape[-1], lag=number_of_lags, hidden=[10])
+    cmlp = cMLP(X.shape[-1], lag=number_of_lags, hidden=hidden)
 
     # Train with ISTA
-    train_loss_list = train_model_ista(cmlp, X, lam=0.01, lam_ridge=0.01, lr=5e-2, penalty='H',
-                                       max_iter=1000,
-                                       check_every=100)
+    train_loss_list = train_model_ista(cmlp, X, lam=lam, lam_ridge=lam_ridge, lr=lr, penalty=penalty, max_iter=max_iter,
+                                       check_every=check_every)
 
     # (p x p x lag) matrix: Entry (i, j, k) indicates whether variable j is Granger causal of variable i at lag k.
     # column_{t-k} -> row_t
     # t-1, t-2, ...
-    GC_est = cmlp.GC(ignore_lag=False, threshold=False).cpu().data.numpy()
-    print(GC_est)
-    print(GC_est.shape)
+    GC_est = cmlp.GC(ignore_lag=ignore_lag, threshold=threshold).cpu().data.numpy()
+    # print(GC_est)
+    # print(GC_est.shape)
 
     # ..., t-2, t-1, t
     W_est_full = np.zeros((len(variable_names), len(variable_names)))
@@ -71,8 +71,8 @@ def train_cMLP():
         # column_{t-k} -> row_t
         W_est_full[-1 * d:, -1 * d - k * d:0 - k * d] = current_lag_W
 
-    print(W_est_full)
-    print(W_est_full.shape)
+    # print(W_est_full)
+    # print(W_est_full.shape)
 
     return W_est_full
 
@@ -89,7 +89,17 @@ if __name__ == "__main__":
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    W_est_full = train_cMLP()
+    hidden = [10]
+    lam = 0.01
+    lam_ridge = 0.01
+    lr = 5e-2
+    penalty = 'H'
+    max_iter = 1000
+    check_every = 100
+    ignore_lag = False
+    threshold = False
+    W_est_full = train_cMLP(normalized_X, device, number_of_lags, hidden, lam, lam_ridge, lr, penalty, max_iter,
+                            check_every, ignore_lag, threshold)
 
     file_name = './estimated_DAG'
 
