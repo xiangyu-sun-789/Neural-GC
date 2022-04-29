@@ -41,7 +41,7 @@ def load_sports_data(number_of_lags):
 
 
 def train_cMLP(normalized_X, device, number_of_lags, hidden, lam, lam_ridge, lr, penalty, max_iter, check_every,
-               ignore_lag, threshold):
+               ignore_lag, threshold, edge_threshold):
     X = torch.tensor(normalized_X[np.newaxis], dtype=torch.float32, device=device)
 
     # assert X shape: (1, number of time steps, number of variables)
@@ -77,6 +77,8 @@ def train_cMLP(normalized_X, device, number_of_lags, hidden, lam, lam_ridge, lr,
     # row -> column
     W_est_full_transposed = np.transpose(W_est_full)
 
+    W_est_full_transposed = W_est_full_transposed * (W_est_full_transposed > edge_threshold)
+
     return W_est_full_transposed
 
 
@@ -101,13 +103,12 @@ if __name__ == "__main__":
     check_every = 100
     ignore_lag = False
     threshold = False
+    edge_threshold = 0.3
     W_est_full = train_cMLP(normalized_X, device, number_of_lags, hidden, lam, lam_ridge, lr, penalty, max_iter,
-                            check_every, ignore_lag, threshold)
+                            check_every, ignore_lag, threshold, edge_threshold)
 
     file_name = './estimated_DAG'
 
     save_adjacency_matrix_in_csv(file_name, W_est_full, variable_names)
 
-    # only plot edges with strength higher than `edge_threshold`
-    edge_threshold = 0.3
-    draw_DAGs_using_LINGAM(file_name, W_est_full * (W_est_full > edge_threshold), variable_names)
+    draw_DAGs_using_LINGAM(file_name, W_est_full, variable_names)
