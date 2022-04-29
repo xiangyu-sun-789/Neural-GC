@@ -51,7 +51,7 @@ def train_cMLP(normalized_X, device, variable_names, number_of_lags, hidden, lam
     assert X.shape[-1] == normalized_X.shape[-1]
 
     # Set up model
-    cmlp = cMLP(X.shape[-1], lag=number_of_lags, hidden=hidden)
+    cmlp = cMLP(X.shape[-1], lag=number_of_lags, hidden=hidden).to(device)
 
     # Train with ISTA
     train_loss_list = train_model_ista(cmlp, X, lam=lam, lam_ridge=lam_ridge, lr=lr, penalty=penalty, max_iter=max_iter,
