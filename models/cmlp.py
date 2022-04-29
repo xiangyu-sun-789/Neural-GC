@@ -67,6 +67,7 @@ class cMLP(nn.Module):
 
         Args:
           threshold: return norm of weights, or whether norm is nonzero.
+                    (Binary if True, weights if False)
           ignore_lag: if true, calculate norm of weights jointly for all lags.
 
         Returns:
