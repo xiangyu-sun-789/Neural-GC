@@ -74,7 +74,10 @@ def train_cMLP(normalized_X, device, number_of_lags, hidden, lam, lam_ridge, lr,
     # print(W_est_full)
     # print(W_est_full.shape)
 
-    return W_est_full
+    # row -> column
+    W_est_full_transposed = np.transpose(W_est_full)
+
+    return W_est_full_transposed
 
 
 if __name__ == "__main__":
