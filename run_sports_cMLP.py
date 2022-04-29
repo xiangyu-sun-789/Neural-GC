@@ -40,23 +40,12 @@ def load_sports_data(number_of_lags):
     return normalized_X, variable_names
 
 
-if __name__ == "__main__":
-
-    number_of_lags = 1
-
-    normalized_X, variable_names = load_sports_data(number_of_lags)
-    print(variable_names)
-
-    assert normalized_X.shape == (4021, 12)
-
-    d = normalized_X.shape[1]
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+def train_cMLP():
     X = torch.tensor(normalized_X[np.newaxis], dtype=torch.float32, device=device)
 
     # assert X shape: (1, number of time steps, number of variables)
-    assert X.shape == (1, 4021, 12)
+    assert X.shape[0] == 1
+    assert X.shape[-1] == normalized_X.shape[-1]
 
     # Set up model
     cmlp = cMLP(X.shape[-1], lag=number_of_lags, hidden=[10])
@@ -84,6 +73,23 @@ if __name__ == "__main__":
 
     print(W_est_full)
     print(W_est_full.shape)
+
+    return W_est_full
+
+
+if __name__ == "__main__":
+    number_of_lags = 1
+
+    normalized_X, variable_names = load_sports_data(number_of_lags)
+    print(variable_names)
+
+    assert normalized_X.shape == (4021, 12)
+
+    d = normalized_X.shape[1]
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    W_est_full = train_cMLP()
 
     file_name = './estimated_DAG'
 
